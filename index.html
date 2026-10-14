@@ -4,6 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Family Holiday Packing Checklist</title>
+
+  <!-- Firebase Realtime Database SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
   <style>
     :root {
       --primary: #2563eb;
@@ -49,8 +54,41 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
     }
-    h1 { font-size: 1.3rem; font-weight: 700; color: #0f172a; }
+    h1 { font-size: 1.25rem; font-weight: 700; color: #0f172a; }
+
+    /* Cloud Sync Badge */
+    .sync-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #f1f5f9;
+      color: var(--text-muted);
+      cursor: pointer;
+      border: 1px solid var(--border);
+    }
+    .sync-badge.online {
+      background: #f0fdf4;
+      color: #15803d;
+      border-color: #bbf7d0;
+    }
+    .sync-badge.offline {
+      background: #fefce8;
+      color: #854d0e;
+      border-color: #fef08a;
+    }
+    .sync-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
 
     /* Active Packer Selector */
     .packer-selector-container {
@@ -251,6 +289,10 @@
   <header>
     <div class="header-top">
       <h1>🧳 Family Packing Checklist</h1>
+      <div id="syncBadge" class="sync-badge offline" onclick="openSyncModal()" title="Click to view cloud sync status">
+        <span class="sync-dot"></span>
+        <span id="syncStatusText">Local Only</span>
+      </div>
     </div>
 
     <!-- Active Packer Selector -->
@@ -271,7 +313,8 @@
 
   <div class="toolbar">
     <button id="toggleEditBtn" onclick="toggleEditMode()">✏️ Edit Mode</button>
-    <button onclick="shareWhatsApp()" class="primary">💬 WhatsApp Summary</button>
+    <button onclick="shareWhatsApp()" class="primary">💬 WhatsApp</button>
+    <button onclick="openSyncModal()">☁️ Cloud Sync</button>
     <button onclick="exportSnapshot()">📤 Export</button>
     <button onclick="openImportModal()">📥 Import</button>
     <button onclick="resetChecks()" class="btn-danger">🔄 Uncheck All</button>
@@ -298,13 +341,33 @@
     </form>
   </dialog>
 
+  <!-- Cloud Sync Setup Modal -->
+  <dialog id="syncModal">
+    <div class="dialog-header">
+      <h3 class="dialog-title">☁️ Live Multi-Device Sync</h3>
+    </div>
+    <div class="dialog-body">
+      <p style="margin-bottom: 8px;">Connect a free Firebase Realtime Database URL to sync changes immediately across all devices.</p>
+      <label>Firebase Database URL:
+        <input type="text" id="inputDbUrl" placeholder="https://your-project-default-rtdb.firebaseio.com" />
+      </label>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">
+        💡 You can also paste this URL once into <code>FIREBASE_DB_URL</code> inside <code>index.html</code> so all devices connect automatically.
+      </p>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" onclick="closeDialog('syncModal')">Close</button>
+      <button type="button" onclick="saveSyncSettings()" class="primary">Connect & Sync</button>
+    </div>
+  </dialog>
+
   <!-- Import Snapshot Modal -->
   <dialog id="importModal">
     <div class="dialog-header">
       <h3 class="dialog-title">Import Snapshot</h3>
     </div>
     <div class="dialog-body">
-      <p style="margin-bottom: 8px;">Paste a snapshot JSON below to update this device's checklist.</p>
+      <p style="margin-bottom: 8px;">Paste a snapshot JSON below to update this checklist.</p>
       <textarea id="importJson" rows="8" placeholder="Paste snapshot JSON here..."></textarea>
     </div>
     <div class="dialog-actions">
@@ -314,6 +377,12 @@
   </dialog>
 
   <script>
+    // ==========================================
+    // ☁️ FIREBASE CLOUD SYNC CONFIGURATION
+    // Paste your Firebase Realtime Database URL here:
+    // ==========================================
+    const FIREBASE_DB_URL = ""; 
+
     const DEFAULT_DATA = {
       categories: [
         {
@@ -392,13 +461,14 @@
     let currentPacker = localStorage.getItem("family_packing_current_user") || "Sharon";
     let isEditMode = false;
     let editingItemId = null;
+    let firebaseDb = null;
+    let checklistRef = null;
 
     function loadData() {
       const saved = localStorage.getItem("family_packing_data");
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          // Strip legacy quantity & packer fields gracefully
           parsed.categories.forEach(cat => {
             cat.items.forEach(item => {
               delete item.qty;
@@ -417,6 +487,69 @@
     function saveData() {
       localStorage.setItem("family_packing_data", JSON.stringify(appData));
       render();
+      syncToCloud();
+    }
+
+    function syncToCloud() {
+      if (checklistRef) {
+        checklistRef.set(appData).catch(err => console.error("Cloud sync error:", err));
+      }
+    }
+
+    function initFirebaseSync() {
+      const dbUrl = (FIREBASE_DB_URL || localStorage.getItem("family_packing_db_url") || "").trim();
+      if (!dbUrl) {
+        updateSyncBadge(false, "Local Only");
+        return;
+      }
+
+      try {
+        if (!firebase.apps.length) {
+          firebase.initializeApp({ databaseURL: dbUrl });
+        }
+        firebaseDb = firebase.database();
+        checklistRef = firebaseDb.ref("checklist_state");
+
+        updateSyncBadge(true, "Connecting...");
+
+        checklistRef.on("value", snapshot => {
+          const cloudData = snapshot.val();
+          if (cloudData && cloudData.categories) {
+            appData = cloudData;
+            localStorage.setItem("family_packing_data", JSON.stringify(appData));
+            render();
+          } else if (!cloudData) {
+            checklistRef.set(appData);
+          }
+          updateSyncBadge(true, "Live Synced");
+        }, err => {
+          console.error("Firebase permission error:", err);
+          updateSyncBadge(false, "Sync Error");
+        });
+      } catch (e) {
+        console.error("Firebase init failed:", e);
+        updateSyncBadge(false, "Setup Failed");
+      }
+    }
+
+    function updateSyncBadge(isLive, label) {
+      const badge = document.getElementById("syncBadge");
+      const text = document.getElementById("syncStatusText");
+      badge.className = "sync-badge " + (isLive ? "online" : "offline");
+      text.textContent = label;
+    }
+
+    function openSyncModal() {
+      const current = (FIREBASE_DB_URL || localStorage.getItem("family_packing_db_url") || "").trim();
+      document.getElementById("inputDbUrl").value = current;
+      document.getElementById("syncModal").showModal();
+    }
+
+    function saveSyncSettings() {
+      const url = document.getElementById("inputDbUrl").value.trim();
+      localStorage.setItem("family_packing_db_url", url);
+      closeDialog("syncModal");
+      initFirebaseSync();
     }
 
     function setPackingAs(name) {
@@ -651,6 +784,7 @@
     }
 
     render();
+    initFirebaseSync();
   </script>
 </body>
 </html>
