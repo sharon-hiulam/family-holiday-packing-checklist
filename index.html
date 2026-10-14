@@ -16,6 +16,17 @@
       --success: #16a34a;
       --danger: #ef4444;
       --radius: 12px;
+
+      /* Packer Badge Colors */
+      --sharon-bg: #fce7f3;
+      --sharon-color: #be185d;
+      --sharon-border: #fbcfe8;
+      --justen-bg: #e0f2fe;
+      --justen-color: #0369a1;
+      --justen-border: #bae6fd;
+      --ailyn-bg: #fef3c7;
+      --ailyn-color: #b45309;
+      --ailyn-border: #fde68a;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -40,12 +51,65 @@
       align-items: center;
     }
     h1 { font-size: 1.3rem; font-weight: 700; color: #0f172a; }
+
+    /* Active Packer Selector */
+    .packer-selector-container {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .packer-selector-label {
+      font-size: 0.76rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      display: block;
+    }
+    .packer-pills {
+      display: flex;
+      gap: 8px;
+    }
+    .packer-pill {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+    .packer-pill:hover { background: #f8fafc; }
+    .packer-pill.active[data-packer="Sharon"] {
+      background: var(--sharon-bg);
+      color: var(--sharon-color);
+      border-color: var(--sharon-border);
+      box-shadow: 0 0 0 1px var(--sharon-color);
+    }
+    .packer-pill.active[data-packer="Justen"] {
+      background: var(--justen-bg);
+      color: var(--justen-color);
+      border-color: var(--justen-border);
+      box-shadow: 0 0 0 1px var(--justen-color);
+    }
+    .packer-pill.active[data-packer="Ailyn"] {
+      background: var(--ailyn-bg);
+      color: var(--ailyn-color);
+      border-color: var(--ailyn-border);
+      box-shadow: 0 0 0 1px var(--ailyn-color);
+    }
+
     .progress-bar-bg {
       background: #e2e8f0;
       border-radius: 999px;
       height: 8px;
       overflow: hidden;
-      margin: 12px 0 6px;
+      margin: 14px 0 6px;
     }
     .progress-bar-fill {
       background: var(--success);
@@ -108,7 +172,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      padding: 8px;
+      padding: 9px 10px;
       border-radius: 8px;
       background: #f8fafc;
       border: 1px solid transparent;
@@ -137,19 +201,19 @@
       accent-color: var(--success);
     }
     .item-details { display: flex; flex-direction: column; }
-    .item-name { font-size: 0.9rem; font-weight: 500; }
+    .item-name { font-size: 0.92rem; font-weight: 500; }
     .item-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
-    .packer-badge {
+    .packed-by-tag {
       display: inline-block;
       padding: 1px 6px;
       border-radius: 4px;
       font-size: 0.72rem;
       font-weight: 600;
     }
-    .packer-badge.sharon { background: #fce7f3; color: #be185d; }
-    .packer-badge.justen { background: #e0f2fe; color: #0369a1; }
-    .packer-badge.teo { background: #fef3c7; color: #b45309; }
-    .packer-badge.ellie { background: #dcfce7; color: #15803d; }
+    .packed-by-tag.sharon { background: var(--sharon-bg); color: var(--sharon-color); }
+    .packed-by-tag.justen { background: var(--justen-bg); color: var(--justen-color); }
+    .packed-by-tag.ailyn { background: var(--ailyn-bg); color: var(--ailyn-color); }
+
     .item-actions { display: flex; align-items: center; gap: 6px; }
     .edit-controls { display: none; }
     .editing .edit-controls { display: flex; }
@@ -171,7 +235,7 @@
     .dialog-title { font-size: 1.05rem; font-weight: 600; }
     .dialog-body { margin-bottom: 16px; font-size: 0.9rem; }
     .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
-    textarea, input[type="text"], input[type="number"], select {
+    textarea, input[type="text"], select {
       width: 100%;
       padding: 8px 10px;
       border: 1px solid var(--border);
@@ -188,6 +252,17 @@
     <div class="header-top">
       <h1>🧳 Family Packing Checklist</h1>
     </div>
+
+    <!-- Active Packer Selector -->
+    <div class="packer-selector-container">
+      <span class="packer-selector-label">Currently Packing As</span>
+      <div class="packer-pills">
+        <button type="button" class="packer-pill" data-packer="Sharon" onclick="setPackingAs('Sharon')">Sharon</button>
+        <button type="button" class="packer-pill" data-packer="Justen" onclick="setPackingAs('Justen')">Justen</button>
+        <button type="button" class="packer-pill" data-packer="Ailyn" onclick="setPackingAs('Ailyn')">Ailyn</button>
+      </div>
+    </div>
+
     <div class="progress-bar-bg">
       <div id="progressBar" class="progress-bar-fill"></div>
     </div>
@@ -215,18 +290,6 @@
       </label>
       <label>Category
         <select id="inputCategory"></select>
-      </label>
-      <label>Assigned Packer
-        <select id="inputPacker">
-          <option value="">Unassigned</option>
-          <option value="Sharon">Sharon</option>
-          <option value="Justen">Justen</option>
-          <option value="Teo">Teo</option>
-          <option value="Ellie">Ellie</option>
-        </select>
-      </label>
-      <label>Quantity
-        <input type="number" id="inputQuantity" value="1" min="1" />
       </label>
       <div class="dialog-actions">
         <button type="button" onclick="closeDialog('itemModal')">Cancel</button>
@@ -257,81 +320,96 @@
           id: "docs",
           name: "🛂 Travel Documents & Money",
           items: [
-            { id: "i1", name: "Passports", qty: 4, packed: false, packer: "Sharon" },
-            { id: "i2", name: "HKID Cards", qty: 4, packed: false, packer: "Sharon" },
-            { id: "i3", name: "Flight Tickets & Bookings", qty: 1, packed: false, packer: "Sharon" },
-            { id: "i4", name: "Octopus Cards & Credit Cards", qty: 4, packed: false, packer: "Justen" },
-            { id: "i5", name: "Foreign Cash / Local Currency", qty: 1, packed: false, packer: "Justen" },
-            { id: "i6", name: "Travel Insurance Details", qty: 1, packed: false, packer: "Sharon" }
+            { id: "i1", name: "Passports", packed: false, packedBy: null },
+            { id: "i2", name: "HKID Cards", packed: false, packedBy: null },
+            { id: "i3", name: "Flight Tickets & Bookings", packed: false, packedBy: null },
+            { id: "i4", name: "Octopus Cards & Credit Cards", packed: false, packedBy: null },
+            { id: "i5", name: "Foreign Cash / Local Currency", packed: false, packedBy: null },
+            { id: "i6", name: "Travel Insurance Details", packed: false, packedBy: null }
           ]
         },
         {
           id: "electronics",
           name: "🔌 Electronics & Power",
           items: [
-            { id: "e1", name: "Mobile Phones & Cables", qty: 2, packed: false, packer: "Justen" },
-            { id: "e2", name: "Apple Watches & Chargers", qty: 2, packed: false, packer: "Justen" },
-            { id: "e3", name: "Universal Travel Adapters", qty: 2, packed: false, packer: "Justen" },
-            { id: "e4", name: "High-Capacity Power Banks", qty: 2, packed: false, packer: "Justen" },
-            { id: "e5", name: "Insta 360 Camera", qty: 1, packed: false, packer: "Justen" },
-            { id: "e6", name: "Kids iPad & Headphones", qty: 2, packed: false, packer: "Sharon" }
+            { id: "e1", name: "Mobile Phones & Cables", packed: false, packedBy: null },
+            { id: "e2", name: "Apple Watches & Chargers", packed: false, packedBy: null },
+            { id: "e3", name: "Universal Travel Adapters", packed: false, packedBy: null },
+            { id: "e4", name: "High-Capacity Power Banks", packed: false, packedBy: null },
+            { id: "e5", name: "Insta 360 Camera", packed: false, packedBy: null },
+            { id: "e6", name: "Kids iPad & Headphones", packed: false, packedBy: null }
           ]
         },
         {
           id: "sharon",
           name: "👗 Sharon",
           items: [
-            { id: "s1", name: "Outfits & Loungewear", qty: 5, packed: false, packer: "Sharon" },
-            { id: "s2", name: "Skincare, Makeup & Face Towel", qty: 1, packed: false, packer: "Sharon" },
-            { id: "s3", name: "Hair Ties & Accessories", qty: 1, packed: false, packer: "Sharon" },
-            { id: "s4", name: "Supplements & Vitamins", qty: 1, packed: false, packer: "Sharon" },
-            { id: "s5", name: "Comfortable Walking Shoes", qty: 1, packed: false, packer: "Sharon" }
+            { id: "s1", name: "Outfits & Loungewear", packed: false, packedBy: null },
+            { id: "s2", name: "Skincare, Makeup & Face Towel", packed: false, packedBy: null },
+            { id: "s3", name: "Hair Ties & Accessories", packed: false, packedBy: null },
+            { id: "s4", name: "Supplements & Vitamins", packed: false, packedBy: null },
+            { id: "s5", name: "Comfortable Walking Shoes", packed: false, packedBy: null }
           ]
         },
         {
           id: "justen",
           name: "👔 Justen",
           items: [
-            { id: "j1", name: "T-Shirts & Shorts / Trousers", qty: 5, packed: false, packer: "Justen" },
-            { id: "j2", name: "Windbreaker & Light Jacket", qty: 1, packed: false, packer: "Justen" },
-            { id: "j3", name: "Electric Shaver & Charger", qty: 1, packed: false, packer: "Justen" },
-            { id: "j4", name: "Sneakers & Flip Flops", qty: 2, packed: false, packer: "Justen" }
+            { id: "j1", name: "T-Shirts & Shorts / Trousers", packed: false, packedBy: null },
+            { id: "j2", name: "Windbreaker & Light Jacket", packed: false, packedBy: null },
+            { id: "j3", name: "Electric Shaver & Charger", packed: false, packedBy: null },
+            { id: "j4", name: "Sneakers & Flip Flops", packed: false, packedBy: null },
+            { id: "j5", name: "Work / Backup Clothes", packed: false, packedBy: null }
           ]
         },
         {
           id: "kids",
           name: "👦 Teo & 👧 Ellie",
           items: [
-            { id: "k1", name: "Teo Clothes & Underwear", qty: 6, packed: false, packer: "Sharon" },
-            { id: "k2", name: "Ellie Outfits & Essentials", qty: 6, packed: false, packer: "Sharon" },
-            { id: "k3", name: "Kids Toothbrushes & Paste", qty: 2, packed: false, packer: "Sharon" },
-            { id: "k4", name: "Water Bottles & Snack Cups", qty: 2, packed: false, packer: "Sharon" },
-            { id: "k5", name: "Favorite Travel Toys", qty: 1, packed: false, packer: "Teo" },
-            { id: "k6", name: "Airplane Pillows & Blankets", qty: 2, packed: false, packer: "Sharon" }
+            { id: "k1", name: "Teo Clothes & Underwear", packed: false, packedBy: null },
+            { id: "k2", name: "Ellie Outfits & Essentials", packed: false, packedBy: null },
+            { id: "k3", name: "Kids Toothbrushes & Paste", packed: false, packedBy: null },
+            { id: "k4", name: "Water Bottles & Snack Cups", packed: false, packedBy: null },
+            { id: "k5", name: "Favorite Travel Toys", packed: false, packedBy: null },
+            { id: "k6", name: "Airplane Pillows & Blankets", packed: false, packedBy: null }
           ]
         },
         {
           id: "health",
           name: "💊 Health & Toiletries",
           items: [
-            { id: "h1", name: "First Aid Kit & Bandages", qty: 1, packed: false, packer: "Sharon" },
-            { id: "h2", name: "Panadol & Motion Sickness Medicine", qty: 1, packed: false, packer: "Sharon" },
-            { id: "h3", name: "Mosquito Spray & Sunscreen", qty: 2, packed: false, packer: "Sharon" },
-            { id: "h4", name: "Disinfectant Wipes & Tissues", qty: 3, packed: false, packer: "Sharon" },
-            { id: "h5", name: "Family Bath Care & Shampoo", qty: 1, packed: false, packer: "Sharon" }
+            { id: "h1", name: "First Aid Kit & Bandages", packed: false, packedBy: null },
+            { id: "h2", name: "Panadol & Motion Sickness Medicine", packed: false, packedBy: null },
+            { id: "h3", name: "Mosquito Spray & Sunscreen", packed: false, packedBy: null },
+            { id: "h4", name: "Disinfectant Wipes & Tissues", packed: false, packedBy: null },
+            { id: "h5", name: "Family Bath Care & Shampoo", packed: false, packedBy: null }
           ]
         }
       ]
     };
 
     let appData = loadData();
+    let currentPacker = localStorage.getItem("family_packing_current_user") || "Sharon";
     let isEditMode = false;
     let editingItemId = null;
 
     function loadData() {
       const saved = localStorage.getItem("family_packing_data");
       if (saved) {
-        try { return JSON.parse(saved); } catch(e) { console.error(e); }
+        try {
+          const parsed = JSON.parse(saved);
+          // Strip legacy quantity & packer fields gracefully
+          parsed.categories.forEach(cat => {
+            cat.items.forEach(item => {
+              delete item.qty;
+              delete item.packer;
+              if (item.packedBy === undefined) {
+                item.packedBy = item.packed ? "Sharon" : null;
+              }
+            });
+          });
+          return parsed;
+        } catch(e) { console.error(e); }
       }
       return JSON.parse(JSON.stringify(DEFAULT_DATA));
     }
@@ -339,6 +417,18 @@
     function saveData() {
       localStorage.setItem("family_packing_data", JSON.stringify(appData));
       render();
+    }
+
+    function setPackingAs(name) {
+      currentPacker = name;
+      localStorage.setItem("family_packing_current_user", name);
+      updatePackerPills();
+    }
+
+    function updatePackerPills() {
+      document.querySelectorAll(".packer-pill").forEach(pill => {
+        pill.classList.toggle("active", pill.getAttribute("data-packer") === currentPacker);
+      });
     }
 
     function toggleEditMode() {
@@ -354,13 +444,18 @@
       if (!cat) return;
       const item = cat.items.find(i => i.id === itemId);
       if (!item) return;
+
       item.packed = !item.packed;
+      item.packedBy = item.packed ? currentPacker : null;
       saveData();
     }
 
     function resetChecks() {
       if (confirm("Reset and uncheck all items?")) {
-        appData.categories.forEach(c => c.items.forEach(i => i.packed = false));
+        appData.categories.forEach(c => c.items.forEach(i => {
+          i.packed = false;
+          i.packedBy = null;
+        }));
         saveData();
       }
     }
@@ -382,16 +477,18 @@
 
         let itemsHtml = "";
         cat.items.forEach(item => {
-          const packerClass = item.packer ? item.packer.toLowerCase() : "";
-          const packerBadge = item.packer ? `<span class="packer-badge ${packerClass}">${item.packer}</span>` : "";
+          const packerClass = item.packedBy ? item.packedBy.toLowerCase() : "";
+          const packedByText = item.packed && item.packedBy
+            ? `<div class="item-meta"><span class="packed-by-tag ${packerClass}">${item.packedBy} packed it</span></div>`
+            : "";
 
           itemsHtml += `
             <li class="item-row ${item.packed ? 'completed' : ''}">
               <label class="item-left">
                 <input type="checkbox" ${item.packed ? 'checked' : ''} onchange="toggleCheck('${cat.id}', '${item.id}')" />
                 <div class="item-details">
-                  <span class="item-name">${item.name} ${item.qty > 1 ? `(x${item.qty})` : ''}</span>
-                  <div class="item-meta">${packerBadge}</div>
+                  <span class="item-name">${item.name}</span>
+                  ${packedByText}
                 </div>
               </label>
               <div class="item-actions">
@@ -417,6 +514,8 @@
       const pct = totalItems > 0 ? Math.round((packedItems / totalItems) * 100) : 0;
       document.getElementById("progressBar").style.width = pct + "%";
       document.getElementById("statsText").textContent = `${packedItems} of ${totalItems} packed (${pct}%)`;
+
+      updatePackerPills();
     }
 
     function shareWhatsApp() {
@@ -429,9 +528,8 @@
         text += `*${cat.name}* (${catPacked}/${cat.items.length})\n`;
         cat.items.forEach(i => {
           const status = i.packed ? "✅" : "⬜";
-          const packer = i.packer ? ` [${i.packer}]` : "";
-          const qty = i.qty > 1 ? ` (x${i.qty})` : "";
-          text += `${status} ${i.name}${qty}${packer}\n`;
+          const packerTag = i.packed && i.packedBy ? ` (${i.packedBy} packed it)` : "";
+          text += `${status} ${i.name}${packerTag}\n`;
         });
         text += "\n";
       });
@@ -478,8 +576,6 @@
       editingItemId = null;
       document.getElementById("itemModalTitle").textContent = "Add Item";
       document.getElementById("inputItemName").value = "";
-      document.getElementById("inputQuantity").value = 1;
-      document.getElementById("inputPacker").value = "";
       populateCategorySelect(defaultCatId);
       document.getElementById("itemModal").showModal();
     }
@@ -492,8 +588,6 @@
       editingItemId = { catId, itemId };
       document.getElementById("itemModalTitle").textContent = "Edit Item";
       document.getElementById("inputItemName").value = item.name;
-      document.getElementById("inputQuantity").value = item.qty || 1;
-      document.getElementById("inputPacker").value = item.packer || "";
       populateCategorySelect(catId);
       document.getElementById("itemModal").showModal();
     }
@@ -514,21 +608,17 @@
       e.preventDefault();
       const name = document.getElementById("inputItemName").value.trim();
       const targetCatId = document.getElementById("inputCategory").value;
-      const packer = document.getElementById("inputPacker").value;
-      const qty = parseInt(document.getElementById("inputQuantity").value) || 1;
 
       if (!name) return;
 
       if (editingItemId) {
         const oldCat = appData.categories.find(c => c.id === editingItemId.catId);
         const itemIdx = oldCat ? oldCat.items.findIndex(i => i.id === editingItemId.itemId) : -1;
-        let existingItem = { id: editingItemId.itemId, packed: false };
+        let existingItem = { id: editingItemId.itemId, packed: false, packedBy: null };
         if (itemIdx > -1) {
           existingItem = oldCat.items.splice(itemIdx, 1)[0];
         }
         existingItem.name = name;
-        existingItem.qty = qty;
-        existingItem.packer = packer;
 
         const targetCat = appData.categories.find(c => c.id === targetCatId);
         if (targetCat) targetCat.items.push(existingItem);
@@ -538,9 +628,8 @@
           targetCat.items.push({
             id: "item_" + Date.now(),
             name,
-            qty,
-            packer,
-            packed: false
+            packed: false,
+            packedBy: null
           });
         }
       }
